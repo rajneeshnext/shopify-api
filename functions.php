@@ -1,6 +1,6 @@
 function create_order($token, $query, $order_id){
     //echo  $query;
-    $apiUrl = 'https://zegerman.myshopify.com/admin/api/2024-07/orders.json';    
+    $apiUrl = 'https://xxxxxx.myshopify.com/admin/api/2024-07/orders.json';    
     $curl = curl_init();
     curl_setopt_array($curl, array(
     CURLOPT_URL => "$apiUrl",
@@ -26,7 +26,7 @@ function create_order($token, $query, $order_id){
 }
 function void_cancel_order($orderID, $token){
     cancel_order($orderID, $token);
-    $apiUrl = 'https://zegerman.myshopify.com/admin/api/2024-07/orders/'.$orderID.'/transactions.json';
+    $apiUrl = 'https://xxxxx.myshopify.com/admin/api/2024-07/orders/'.$orderID.'/transactions.json';
     
     $curl = curl_init();
     curl_setopt_array($curl, array(
@@ -49,7 +49,7 @@ function void_cancel_order($orderID, $token){
     foreach($datas['transactions'] as $data){
         if($data['kind'] == "capture"){
             $parent_id = $data['id'];
-            $apiUrl = 'https://zegerman.myshopify.com/admin/api/2024-07/orders/'.$orderID.'/transactions.json';
+            $apiUrl = 'https://xxxxxx.myshopify.com/admin/api/2024-07/orders/'.$orderID.'/transactions.json';
             $query = '{
               "transaction": {
                 "kind": "void",
@@ -80,7 +80,7 @@ function void_cancel_order($orderID, $token){
 
 // Cancel Order
 function cancel_order($orderID, $token){
-    $apiUrl = 'https://zegerman.myshopify.com/admin/api/2024-07/orders/'.$orderID.'/cancel.json';
+    $apiUrl = 'https://xxxxxx.myshopify.com/admin/api/2024-07/orders/'.$orderID.'/cancel.json';
     $query = '';
     
     $curl = curl_init();
