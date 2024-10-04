@@ -1,5 +1,5 @@
  <?php 
-    /* Template Name: Shopify Woo*/
+    /* Template Name: Shopify Woo Webhook */
     ini_set('display_errors', '1');
     ini_set('display_startup_errors', '1');
     echo "<pre>";
