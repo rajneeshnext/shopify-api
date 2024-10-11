@@ -1,5 +1,5 @@
  <?php 
-    /* Template Name: Shopify Woo Webhook */
+    /* Template Name: Shopify Woo*/
     ini_set('display_errors', '1');
     ini_set('display_startup_errors', '1');
     echo "<pre>";
@@ -47,18 +47,9 @@
          ));
         $response = curl_exec($curl);
         $datas = json_decode($response, true);
-        //print_r($datas['metafields'] );
-        foreach($datas['metafields'] as $metafield){
-            if($metafield['key'] == 'connect_woo'){
-                if($metafield['value']){
-                    $flag= true;
-                }else{
-                    $flag = false;
-                }
-            }
-        }   
-        echo "Meta Field is checked to: ".$flag;
-        return $flag; 
+        return $datas['metafields'];
+        //echo "Meta Field is checked to: ".$flag;
+        //return $flag; 
     }
     function getLocation($id, $token){
         $flag = false;
@@ -158,7 +149,7 @@
     //pricode_update_product($arr_m);
     exit();*/
     if($payload!=""){
-        $flag=false;
+        $flag=$flag_redmart=false;
         $product_event_type = $_GET['product_event_type'];
         $payload = str_replace("'", "", $payload);
         $arr_m = json_decode($payload, TRUE);
@@ -173,11 +164,27 @@
         $product_cat = array();
         if($productID){
             echo "<br/>Checking Meta Field for WOO sync allowed. <br/>"; 
-			$flag = getMetaFields($productID, $token = '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');
+			$metafields = getMetaFields($productID, $token = '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');
+            foreach($metafields as $metafield){
+                if($metafield['key'] == 'connect_woo'){
+                    if($metafield['value']){
+                        $flag= true;
+                    }else{
+                        $flag = false;
+                    }
+                }
+                if($metafield['key'] == 'connect_redmart'){
+                    if($metafield['value']){
+                        $flag_redmart= true;
+                    }else{
+                        $flag_redmart = false;
+                    }
+                }
+            }  
             $product_cat = getProduct($data_arr['id'], $token = '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');
         }
         if($flag){
-            echo "<br/>Meta Field is true and event is ".$product_event_type;
+            echo "<br/>Woo Meta Field is true and event is ".$product_event_type;
             if($product_event_type == "update"){
                 pricode_update_product($data_arr, $product_cat);
             }elseif($product_event_type == "delete"){
@@ -197,8 +204,21 @@
                     }
                 }  
             }
-        }   
-    }
+        }
+        if($flag_redmart){
+            echo "<br/>RedMart Meta Field is true and event is ".$product_event_type;
+            if($product_event_type == "update" || $product_event_type == "add"){
+                foreach($data_arr['variants'] as $variant){ 
+                    if($variant['inventory_quantity']==0){
+                        $quantity_to_update = 0;
+                    }else{
+                        $quantity_to_update = $variant['inventory_quantity'];
+                    }            
+                    updateRedMartInventoryStart($variant['sku'], $quantity_to_update);
+                }
+            }   
+        }
+    }    
 
     function pricode_update_product($data_product, $product_cat){ 
         //echo "<pre>";
@@ -281,6 +301,7 @@
                                 $attrb[$option['name']] = $variant['option'.$i];
                             } 
                             pricode_create_variations( $product->get_id(), $attrb, $data );
+
                         }
                     }
                 }else{
