@@ -4,7 +4,7 @@
  *
  * @package Martfury
  */
-include dirname(__FILE__) . '/php/LazopSdk.php'; 
+include '/home/customer/www/xxxxx/public_html/wp-content/themes/martfury-2/php/LazopSdk.php'; 
 /**
  * Sets up theme defaults and registers support for various WordPress features.
  *
@@ -337,7 +337,7 @@ function cancel_order($orderID, $token){
 add_action( 'woocommerce_order_status_cancelled', 'cancel_shopify_order', 
 21, 1 );
 function cancel_shopify_order($order_id) {
-	$token = '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';
+	$token = getShopifytoken();
 	$orderID = get_post_meta( $order_id, 'shopify_order_id', true ); 
 	if($orderID!="" && $orderID>0){
 		void_cancel_order($orderID, $token);
@@ -362,7 +362,7 @@ function cancel_shopify_order($order_id) {
 add_action( 'woocommerce_order_status_processing', 'processing_shopify_order' );
 
 function processing_shopify_order($order_id) {
-    $token = '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';
+    $token = getShopifytoken();
     $order_shopify = array();
 	$order = wc_get_order( $order_id );
 	$billingEmail = $order->billing_email;
@@ -427,7 +427,8 @@ function updateRedMartInventoryStart($productID, $woo_item_quantity){
     updateRedMartInventory($quantityToUpdate, $productID);
 }
 function calculateRedMartQuantityForWooProduct($productID, $woo_item_quantity){
-	$current_redmart_quantity = getRedMartInventory($productID);	
+	$redmart_inventory_array = getRedMartInventory($productID);
+	$current_redmart_quantity = $redmart_inventory_array['quantityAtPickupLocation'] - $redmart_inventory_array['quantityScheduledForPickup'];	
 	if($current_redmart_quantity>=$woo_item_quantity){
 		$quantityToUpdate = $current_redmart_quantity - $woo_item_quantity;
 	}else{
@@ -456,22 +457,71 @@ function updateRedMartInventory($quantityToUpdate, $productID=1047771){
             refreshToken("https://auth.lazada.com/rest", $app_key, $app_secret);
         }
     }
-}    
-function getRedMartInventory($productID=1047771){
-    $url = "https://api.lazada.sg/rest";
-    $access_token = getToken();
+}  
+function getRedMartInventoryInPickup($productID=1047771){
+	$url = "https://api.lazada.sg/rest";
+	$access_token = getToken();
     $app_key = getRedMartAppKey();
     $app_secret = getRedMartAppSecret();
-    $url = "https://api.lazada.sg/rest";
-    $c = new LazopClient($url, $app_key, $app_secret);
-    $request = new LazopRequest('/rss/stockLots/get','GET');
+	$url = "https://api.lazada.sg/rest";
+	$c = new LazopClient($url, $app_key, $app_secret);
+	$request = new LazopRequest('/rss/stockLots/get','GET');
     $request->addApiParam('storeId','50525');
     $request->addApiParam('pickupLocationId','50532');
     $request->addApiParam('productId', $productID);
-    $orders = $c->execute($request, $access_token);
+	$fh = fopen(dirname(__FILE__).'/shopify-order-outine-script-run.txt','w');
+	$orders = $c->execute($request, $access_token);
     $product = json_decode($orders, TRUE);    
 	if(isset($product["result"]) && isset($product["result"]["data"][0]['quantityAtPickupLocation'])){
-    	return $product["result"]["data"][0]['quantityAtPickupLocation'];
+    	$inventory = $product["result"]["data"][0]['quantityScheduledForPickup'];
+		return $inventory;
+    }else if(isset($product["code"]) && $product["code"]!=0){
+        if($product["code"] == "IllegalAccessToken"){
+            refreshToken("https://auth.lazada.com/rest", $app_key, $app_secret);
+        }
+    }
+}
+function getRedMartInventoryAvailable($productID=1047771){
+	$url = "https://api.lazada.sg/rest";
+	$access_token = getToken();
+    $app_key = getRedMartAppKey();
+    $app_secret = getRedMartAppSecret();
+	$url = "https://api.lazada.sg/rest";
+	$c = new LazopClient($url, $app_key, $app_secret);
+	$request = new LazopRequest('/rss/stockLots/get','GET');
+    $request->addApiParam('storeId','50525');
+    $request->addApiParam('pickupLocationId','50532');
+    $request->addApiParam('productId', $productID);
+	$fh = fopen(dirname(__FILE__).'/shopify-order-outine-script-run.txt','w');
+	$orders = $c->execute($request, $access_token);
+    $product = json_decode($orders, TRUE);    
+	if(isset($product["result"]) && isset($product["result"]["data"][0]['quantityAtPickupLocation'])){
+    	$inventory = $product["result"]["data"][0]['quantityAvailableForSale'];
+		return $inventory;
+    }else if(isset($product["code"]) && $product["code"]!=0){
+        if($product["code"] == "IllegalAccessToken"){
+            refreshToken("https://auth.lazada.com/rest", $app_key, $app_secret);
+        }
+    }
+}
+function getRedMartInventory($productID=1047771){
+	$url = "https://api.lazada.sg/rest";
+	$access_token = getToken();
+    $app_key = getRedMartAppKey();
+    $app_secret = getRedMartAppSecret();
+	$url = "https://api.lazada.sg/rest";
+	$c = new LazopClient($url, $app_key, $app_secret);
+	$request = new LazopRequest('/rss/stockLots/get','GET');
+    $request->addApiParam('storeId','50525');
+    $request->addApiParam('pickupLocationId','50532');
+    $request->addApiParam('productId', $productID);
+	$fh = fopen(dirname(__FILE__).'/shopify-order-outine-script-run.txt','w');
+	$orders = $c->execute($request, $access_token);
+    $product = json_decode($orders, TRUE);    
+	if(isset($product["result"]) && isset($product["result"]["data"][0]['quantityAtPickupLocation'])){
+    	$inventory = $product["result"]["data"][0];
+    	//$inventory = $product["result"]["data"][0]['quantityAtPickupLocation'];
+		return $inventory;
     }else if(isset($product["code"]) && $product["code"]!=0){
         if($product["code"] == "IllegalAccessToken"){
             refreshToken("https://auth.lazada.com/rest", $app_key, $app_secret);
@@ -504,7 +554,7 @@ function getRedMartOrder(){
 		//echo "<pre>";
 		//print_r($orders);
         $order_shopify = array();
-        $token = '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';
+        $token = getShopifytoken();
         foreach($orders["result"]["data"] as $order){
 			$orderID = get_option($order['id']);
 			echo $order['id']."====".$orderID;
@@ -603,7 +653,8 @@ function getLocations($token){
         $datas = json_decode($response, true);
         //print_r($datas);
 }
-function updateShopifyInventory($locationID, $inventory_item_id, $quantity, $token){
+function updateShopifyInventory($locationID, $inventory_item_id, $quantity, $token=''){
+		$token = getShopifytoken();
         $flag = false;
 		$post = '{"location_id":'.$locationID.',"inventory_item_id":'.$inventory_item_id.',"available_adjustment":'.$quantity.'}';
         $apiUrl = 'https://zegerman.myshopify.com/admin/api/2024-10/inventory_levels/adjust.json';
@@ -651,7 +702,8 @@ function getShopifyMetaFields($productID, $token){
         //echo "Meta Field is checked to: ".$flag;
         //return $flag; 
 }
-function getShopifyInventoryBySKU($sku, $token){
+function getShopifyInventoryBySKU($sku, $token=''){
+	$token = getShopifytoken();
 	$apiUrl = "https://zegerman.myshopify.com/admin/api/2024-10/graphql.json";
 	$post = '{"query": "query { productVariants(first: 3, query: \"sku:'.$sku.'\") { edges { node { id title price updatedAt inventoryQuantity product { id title } inventoryItem {id }} } } }"}';
 	
@@ -681,10 +733,74 @@ function getShopifyInventoryBySKU($sku, $token){
 		$data['shopify_inventory_item_id']=basename($datas['data']['productVariants']['edges'][0]['node']['inventoryItem']['id']);
 		return $data;
 	}else{
-		return "-1";
+		$data['shopify_inventory'] = -1;
+		return $data;
 	}
 }
-function updateShopifyOrderRoutine(){
+function updateShopifyOrderRoutineFunc(){
+	$access_token = getToken();
+	$token = getShopifytoken();
+	// some redmart/shopify items may not exist in woo so find in options key/value
+	global $wpdb;
+	$partial_key = 'rpc_code_';
+	$query = $wpdb->prepare(
+		"SELECT option_id, option_name, option_value 
+		 FROM {$wpdb->options} 
+		 WHERE option_name LIKE %s",
+		'%' . $wpdb->esc_like($partial_key) . '%'
+	);
+	$results = $wpdb->get_results($query);
+	// Check if there are results and loop through them
+	if ( !empty($results) ) {
+		foreach ( $results as $option ) {
+			// Access option_name and option_value
+			$option_name  = $option->option_name;
+			$option_value = $option->option_value;
+			echo 'Option Name: ' . esc_html($option_name) . '<br>';
+			echo 'Option Value: ' . esc_html($option_value) . '<br><br>';
+			$sku_arr = explode("rpc_code_",$option_name);
+			$sku = $sku_arr[1];
+			$rpc_code = $option_value;
+			$locationID = 63562907842;
+			$data = getShopifyInventoryBySKU($sku, $token);
+			if($data['shopify_inventory']>=0){
+				//Get RedMart Inventory
+				$metas = getShopifyMetaFields($data['shopify_id'], $token);
+				$rpc_threshold = 0;
+				foreach($metas as $metafield){
+					if($metafield['key'] == 'rpc_threshold'){
+						if($metafield['value'] !="" && $metafield['value'] > 0){
+							$rpc_threshold = $metafield['value'];
+						}
+					}
+				}  
+				$final_inventory = $data['shopify_inventory'];
+				echo "<br/>Shopify Inevntory: ".$final_inventory;
+				$redmart_inventory_array = getRedMartInventory($rpc_code);
+				$redmart_inventory = $redmart_inventory_array['quantityAtPickupLocation'] - $redmart_inventory_array['quantityScheduledForPickup'];
+				$redmart_inventory_threshold = $redmart_inventory+$rpc_threshold;
+				echo "<br/>RedMart Inventory including threshold: ".$redmart_inventory_threshold."<br/>";
+				if($redmart_inventory_threshold!=$final_inventory){
+					//update shopify inventory
+					echo $to_update_shopify = $redmart_inventory+$rpc_threshold-$data['shopify_inventory'];
+					if(isset($data['shopify_inventory_item_id'])){
+						$shopify_inventory_item_id = $data['shopify_inventory_item_id'];
+						updateShopifyInventory($locationID, $shopify_inventory_item_id, $to_update_shopify, $token);
+						echo "<br/>Done shopify inventory<br/>";
+					}		
+				}else{
+					echo "<br/>Both inventory are same<br/>";
+				}
+			}else{
+				$query = $wpdb->prepare("DELETE FROM wp_options WHERE option_id = %d",$option->option_id);				
+				$results = $wpdb->get_results($query);
+				//exit();
+			}
+		}
+	} else {
+		echo 'No options found for the partial key: ' . esc_html($partial_key);
+	}
+	
 	$args = array(
 		'post_type' => array('product_variation', 'product'),
 	    'meta_query'      => array(
@@ -697,19 +813,22 @@ function updateShopifyOrderRoutine(){
 	);
 	// execute the main query
 	$the_main_loop = new WP_Query($args);
-	echo "Total product/variations connected: ";echo $count = $the_main_loop->found_posts;
-	echo "<br/>";
-	echo "<pre>";
+	echo "Total product/variations connected: ";
+	echo $count = $the_main_loop->found_posts;
+	//echo "<br/>";
+	//echo "<pre>";
 	// go main query
 	if($the_main_loop->have_posts()) { 
 	    while($the_main_loop->have_posts()) { 
 		    $the_main_loop->the_post(); 
 		    echo $productId = $post_id = get_the_ID();
+			$product = wc_get_product($productId);
 			echo "====";
 			echo $sku = $product->get_sku();
 			echo "====";
 			echo $rpc_code = $product->get_meta('rpc_code');
-			echo "====<br/>";
+			echo "====";
+			continue;
 		    $date_synced = get_post_meta($productId, 'red_mart_shopify_date_synced', true);
 			$date_now = date('Y-m-d H:i:s');
 			$d1 = strtotime("$date_synced"); // first date
@@ -717,24 +836,10 @@ function updateShopifyOrderRoutine(){
 			$interval = round(abs($d2 - $d1) / 60, 2); // get difference between two datesecho "<br/>";
 			echo "==" . $interval;
 			echo " min passed<br/>";
-			if($interval >= 5 || $date_synced==""){
+			if($interval >= 1 || $date_synced==""){
 				update_post_meta($productId, 'red_mart_shopify_date_synced', date("Y-m-d H:i:s"));
-				//Get Shopify Inventory - Threshold
-				$token = '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';
-				//getLocations($token);exit();
 				$locationID = 63562907842;
-				//$shopify_inventory_item_id=43685596102850;$quantity=-7;
-				//updateShopifyInventory($locationID, $shopify_inventory_item_id, $quantity, $token);
-				//exit();
 				$data = getShopifyInventoryBySKU($sku, $token);
-				print_r($data);
-				/*Array
-				(
-				    [shopify_inventory] => 8
-				    [shopify_id] => 7236416176322
-				    [shopify_variant_id] => 41589570732226
-				    [shopify_inventory_item_id] => 43685596102850
-				)*/
 				if($data['shopify_inventory']>=0){
 					//Get RedMart Inventory
 					$metas = getShopifyMetaFields($data['shopify_id'], $token);
@@ -746,23 +851,25 @@ function updateShopifyOrderRoutine(){
 		                    }
 		                }
 		            }  
-					if($rpc_threshold == 0){
+					$final_inventory = $data['shopify_inventory'];
+					/*if($rpc_threshold == 0){
 						$final_inventory = $data['shopify_inventory'];
 					}
 					else{
 						$final_inventory = $data['shopify_inventory'] - $rpc_threshold;
-					}
-
-					echo "<br/>Final after threshold: ".$final_inventory;
-					$redmart_inventory = getRedMartInventory($rpc_code);
-					echo "<br/>RedMart Inventory: ".$redmart_inventory;
-					if($redmart_inventory!=$final_inventory){
+					}*/
+					echo "<br/>Shopify inventory: ".$final_inventory;
+					$redmart_inventory_array = getRedMartInventory($rpc_code);
+					$redmart_inventory = $redmart_inventory_array['quantityAtPickupLocation'] - $redmart_inventory_array['quantityScheduledForPickup'];
+					$redmart_inventory_threshold = $redmart_inventory+$rpc_threshold;
+					echo "<br/>RedMart Inventory including threshold: ".$redmart_inventory_threshold."<br/>";
+					if($redmart_inventory_threshold!=$final_inventory){
 						//update shopify inventory
 						echo $to_update_shopify = $redmart_inventory+$rpc_threshold-$data['shopify_inventory'];
 						if(isset($data['shopify_inventory_item_id'])){
 							$shopify_inventory_item_id = $data['shopify_inventory_item_id'];
 							updateShopifyInventory($locationID, $shopify_inventory_item_id, $to_update_shopify, $token);
-							echo "<br/>Done shopify inventory";
+							echo "<br/>Done shopify inventory<br/>";
 						}		
 					}else{
 						echo "<br/>Both inventory are same";
@@ -775,27 +882,209 @@ function updateShopifyOrderRoutine(){
 	}
 }
 
-// CRON fetch all connected the redmart product/variations in loop every 5 min for meta field rpc_code
-// rpc_code value added via webhook from shopify
+// CRON fetch all connected the redmart product/variations in loop every 5 min
 // Get Shopify inventory and inventory_item_id by SKU
 // Get Shopify meta field to get rpc_threshold
 // Update Inventory to shopify updateShopifyInventory
-add_filter( 'cron_schedules', 'add_update_shopify_inventory_routine' );
-function add_update_shopify_inventory_routine( $schedules ) {
-    $schedules['every_five_minute'] = array(
-            'interval'  => 300,
-            'display'   => __( 'Every 5 min', 'textdomain' )
-    );
-    return $schedules;
-}
 
-// Schedule an action if it's not already scheduled
-if ( ! wp_next_scheduled( 'add_update_shopify_inventory_routine' ) ) {
-    wp_schedule_event( time(), 'every_five_minute', 'add_update_shopify_inventory_routine' );
-}
-// Hook into that action that'll fire every three minutes
-add_action( 'add_update_shopify_inventory_routine', 'add_update_shopify_inventory_routine_func' );
 function add_update_shopify_inventory_routine_func() {
-    $access_token = getToken();
-    updateShopifyOrderRoutine();
+    updateShopifyInventoryRoutineFunc();
 }
+function updateShopifyInventoryRoutineFunc(){
+	$access_token = getToken();
+	$token = getShopifytoken();
+	// some redmart/shopify items may not exist in woo so find in options key/value
+	global $wpdb;
+	$partial_key = 'rpc_code_';
+	$query = $wpdb->prepare(
+		"SELECT option_id, option_name, option_value 
+		 FROM {$wpdb->options} 
+		 WHERE option_name LIKE %s",
+		'%' . $wpdb->esc_like($partial_key) . '%'
+	);
+	$results = $wpdb->get_results($query);
+	// Check if there are results and loop through them
+	if ( !empty($results) ) {
+		foreach ( $results as $option ) {
+			// Access option_name and option_value
+			$option_name  = $option->option_name;
+			$option_value = $option->option_value;
+			if(esc_html($option_value) == ""){
+				continue;	
+			}
+			echo '<br/><br/>================<br/><br/>'.$option->option_id.' Option Name: ' . esc_html($option_name) . '<br>';
+			echo 'Option Value: ' . esc_html($option_value) . '<br>';
+			
+			$sku_arr = explode("rpc_code_",$option_name);
+			$sku = $sku_arr[1];
+			$rpc_code = $option_value;
+			$locationID = 63562907842;
+			$data = getShopifyInventoryBySKU($sku, $token);
+			echo "<pre>";
+			//print_r($data);
+			$metas = getShopifyMetaFields($data['shopify_id'], $token);
+			//print_r($metas);
+			$rpc_threshold = 0;
+			$rpc_code_check = "";
+			foreach($metas as $metafield){
+				if($metafield['key'] == 'rpc_threshold'){
+					if($metafield['value'] !="" && $metafield['value'] > 0){
+						$rpc_threshold = $metafield['value'];
+					}
+				}
+				if($metafield['key'] == 'rpc_code'){
+					$rpc_code_check = $metafield['value'];
+				}
+			}  
+			echo "<br/>CompareRPC code: $rpc_code_check==".$rpc_code;
+			if($rpc_code_check != $rpc_code){
+				echo "==Deleting this: $rpc_code_check==".$rpc_code;
+				delete_option($option_name);
+				continue;
+			}
+			$redmart_inventory_json = get_option('rpc_pre_lot_'.$sku);
+			if($redmart_inventory_json =="" || $redmart_inventory_json=="null"){
+				$redmart_inventory_array = getRedMartInventory($rpc_code);
+				//print_r($redmart_inventory_array);
+				$redmart_inventory = $redmart_inventory_array['quantityAvailableForSale'];
+				$to_update_shopify = $redmart_inventory+$rpc_threshold-$data['shopify_inventory'];
+				$shopify_inventory_item_id = $data['shopify_inventory_item_id'];
+				updateShopifyInventory($locationID, $shopify_inventory_item_id, $to_update_shopify, $token);
+
+                $redmart_inventory_json = json_encode($redmart_inventory_array);
+                update_option('rpc_pre_lot_'.$sku, $redmart_inventory_json);
+			}else{
+				$redmart_inventory_array = json_decode($redmart_inventory_json, true);
+				//print_r($redmart_inventory_array);
+				if(isset($data['shopify_inventory_item_id']) && $redmart_inventory_array){
+					$redmart_inventory = $redmart_inventory_array['quantityAvailableForSale'];
+					$redmart_new_inventory_array = getRedMartInventory($rpc_code);
+					//echo "<br/><br/>";
+					//print_r($redmart_new_inventory_array);
+					// no need to count threshold when comparing with local json inventory
+					$to_update_shopify = $redmart_new_inventory_array['quantityAvailableForSale']-$redmart_inventory;
+					$shopify_inventory_item_id = $data['shopify_inventory_item_id'];
+					updateShopifyInventory($locationID, $shopify_inventory_item_id, $to_update_shopify, $token);
+					echo "<br/>Done shopify inventory $to_update_shopify direct <br/>";
+	                $redmart_inventory_json = json_encode($redmart_new_inventory_array);
+	                update_option('rpc_pre_lot_'.$sku, $redmart_inventory_json);
+	                //exit();
+				}	
+			}	
+			
+		}
+	} else {
+		echo 'No options found for the partial key: ' . esc_html($partial_key);
+	}
+	//exit();
+	$args = array(
+		'post_type' => array('product_variation', 'product'),
+	    'meta_query'      => array(
+	        array(
+	            'key'     => 'rpc_code',
+	            'value'   => 0,
+	            'compare' => '>='
+	        ),
+	    ),
+	);
+	// execute the main query
+	$the_main_loop = new WP_Query($args);
+	echo "Total product/variations connected: ";
+	echo $count = $the_main_loop->found_posts;
+	//echo "<br/>";
+	//echo "<pre>";
+	// go main query
+	if($the_main_loop->have_posts()) { 
+	    while($the_main_loop->have_posts()) { 
+		    $the_main_loop->the_post();
+			echo "<br/>ProductID: ";
+		    echo $productId = $post_id = get_the_ID();
+			$product = wc_get_product($productId);
+			echo "====";
+			echo $sku = $product->get_sku();
+			echo "====";
+			echo $rpc_code = $product->get_meta('rpc_code');
+			echo "====";
+			//continue;
+		    $date_synced = get_post_meta($productId, 'red_mart_shopify_date_synced', true);
+			$date_now = date('Y-m-d H:i:s');
+			$d1 = strtotime("$date_synced"); // first date
+			$d2 = strtotime("$date_now"); // second date
+			$interval = round(abs($d2 - $d1) / 60, 2); // get difference between two datesecho "<br/>";
+			echo "==" . $interval;
+			echo " min passed<br/>";
+			if($interval >= 1 || $date_synced==""){
+				update_post_meta($productId, 'red_mart_shopify_date_synced', date("Y-m-d H:i:s"));
+				$locationID = 63562907842;
+				$data = getShopifyInventoryBySKU($sku, $token);
+				$metas = getShopifyMetaFields($data['shopify_id'], $token);
+				$rpc_threshold = 0;
+				$rpc_code_check = "";
+				$connect_woo_check = false;
+				echo "<pre>";
+				//print_r($metas);
+				foreach($metas as $metafield){
+					if($metafield['key'] == 'rpc_threshold'){
+						if($metafield['value'] !="" && $metafield['value'] > 0){
+							$rpc_threshold = $metafield['value'];
+						}
+					}
+					if($metafield['key'] == 'connect_woo'){
+						if($metafield['value']){
+							$connect_woo_check = true;
+						}else{
+							$connect_woo_check = false;
+						}
+					}
+					if($metafield['key'] == 'rpc_code'){
+						$rpc_code_check = $metafield['value'];
+					}
+				}
+				if(!$connect_woo_check){
+					$product->update_meta_data('shopify', '');
+					$product->save();
+				}
+				echo "<br/>CompareRPC code: $rpc_code_check==".$rpc_code;
+				if($rpc_code_check != $rpc_code){
+					echo "<br/>$rpc_code_check==".$rpc_code;
+					$product->update_meta_data('rpc_code', '');
+					$product->update_meta_data('rpc_pre_lot', '');
+					$product->save();
+					continue;
+				}
+				
+				$redmart_inventory_json = $product->get_meta('rpc_pre_lot');
+				if($redmart_inventory_json =="" || $redmart_inventory_json=="null"){
+					$redmart_inventory_array = getRedMartInventory($rpc_code);
+					//print_r($redmart_inventory_array);
+					$redmart_inventory = $redmart_inventory_array['quantityAvailableForSale'];
+					$to_update_shopify = $redmart_inventory+$rpc_threshold-$data['shopify_inventory'];
+					$shopify_inventory_item_id = $data['shopify_inventory_item_id'];
+					updateShopifyInventory($locationID, $shopify_inventory_item_id, $to_update_shopify, $token);
+
+	                $redmart_inventory_json = json_encode($redmart_inventory_array);
+	                $product->update_meta_data('rpc_pre_lot', "$redmart_inventory_json");
+				}else{
+					$redmart_inventory_array = json_decode($redmart_inventory_json, true);
+					if(isset($data['shopify_inventory_item_id']) && $redmart_inventory_array){
+						$redmart_inventory = $redmart_inventory_array['quantityAvailableForSale'];
+						$redmart_new_inventory_array = getRedMartInventory($rpc_code);
+						// no need to count threshold when comparing with local json inventory
+						$to_update_shopify = $redmart_new_inventory_array['quantityAvailableForSale']-$redmart_inventory;
+						$shopify_inventory_item_id = $data['shopify_inventory_item_id'];
+						updateShopifyInventory($locationID, $shopify_inventory_item_id, $to_update_shopify, $token);
+						echo "<br/>Done shopify inventory<br/>";
+		                $redmart_inventory_json = json_encode($redmart_new_inventory_array);
+		                $product->update_meta_data('rpc_pre_lot', "$redmart_inventory_json");
+					}
+				}
+				echo "<br/>";
+			}
+	    } // endwhile
+	    wp_reset_postdata(); // VERY VERY IMPORTANT
+	}
+}
+function getShopifytoken(){
+	return "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";
+}
+?>
