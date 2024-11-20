@@ -1085,6 +1085,6 @@ function updateShopifyInventoryRoutineFunc(){
 	}
 }
 function getShopifytoken(){
-	return "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";
+	return "xxxxxx";
 }
 ?>
