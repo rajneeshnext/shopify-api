@@ -3,7 +3,7 @@
     ini_set('display_errors', '1');
 ini_set('display_startup_errors', '1');
 error_reporting(E_ALL);
-    echo "<pre>";//$metafields = getMetaFields('7236416176322', $token = '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');print_r($metafields);exit();
+    echo "<pre>";//$metafields = getMetaFields('7236416176322', $token = 'xxxxxx');print_r($metafields);exit();
     function getImages($productID, $token){
         $token = getShopifytoken();
         $flag = false;
@@ -152,14 +152,14 @@ error_reporting(E_ALL);
     $payload = str_replace("'", "", $payload);
     $arr_m = json_decode($payload, TRUE);
     print_r($arr_m);
-    getProduct($arr_m['id'], $token = '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');
-    getLocation($arr_m['id'], $token = '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');
+    getProduct($arr_m['id'], $token = 'xxxxxx');
+    getLocation($arr_m['id'], $token = 'xxxxxx');
     exit();
     foreach($arr_m['variants'] as $variant){ 
         $arr_inventory_ids[] = $variant['inventory_item_id'];
     }
     echo $inventory_ids = implode(', ', $arr_inventory_ids);
-    getInventoryInfo($inventory_ids, $token = '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');
+    getInventoryInfo($inventory_ids, $token = 'xxxxxx');
     //pricode_update_product($arr_m);
     exit();*/
     if($payload!=""){
@@ -179,7 +179,7 @@ error_reporting(E_ALL);
         $rpc_threshold = 0;
         if($productID){
             echo "<br/>Checking Meta Field for WOO sync allowed. <br/>"; 
-            $metafields = getMetaFields($productID, $token = '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');
+            $metafields = getMetaFields($productID, $token = 'xxxxxx');
 			print_r($metafields);
             foreach($metafields as $metafield){
                 if($metafield['node']['key'] == 'connect_woo'){
@@ -201,7 +201,7 @@ error_reporting(E_ALL);
                     }
                 }
             }  
-            $product_cat = getProduct($data_arr['id'], $token = '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');
+            $product_cat = getProduct($data_arr['id'], $token = 'xxxxxx');
         }
         if($flag){
             echo "<br/>Woo Meta Field is true and event is ".$product_event_type;
@@ -481,7 +481,7 @@ error_reporting(E_ALL);
                             wp_set_object_terms($product->get_id(), $tags, 'product_tag');
                         }  
                         delete_all_images_for_product($product->get_id()); 
-                        $images_urls = getImages($data_product['id'], $token = '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'); 
+                        $images_urls = getImages($data_product['id'], $token = 'xxxxxx'); 
                         foreach($images_urls as $image){
                             echo "<br/>Adding Image: ".$image['src']."<br/>";
                             echo $image_url = trim(strtok($image['src'], '?'));
@@ -619,7 +619,7 @@ error_reporting(E_ALL);
                 }
             }   
             if(isset($product)){     
-                $images_urls = getImages($data_product['id'], $token = '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'); 
+                $images_urls = getImages($data_product['id'], $token = 'xxxxxx'); 
                 foreach($images_urls as $image){
                     echo "<br/>Adding Image: ".$image['src']."<br/>";
                     echo $image_url = trim(strtok($image['src'], '?'));
