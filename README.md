@@ -27,7 +27,7 @@ It confirms there is no new order. Shopify stock wont change and is still 6. Red
 Shopify updates woo stock to 6.
 Read redmart Lot again and save it to Pre_Lot.
 Pre_Lot = Cur_Lot； Pre_Lot becomes {7, 6, 1}, 
-
+ 
 - Now there is Shopify Online/POS orders or Woo Orders. Assume the orders are 2 items.
 Shopify stock changes from 6 to 4. 
 Shopify checks redmart Stock Lot, Cur_Lot={7, 6, 1}, which is equal to Pre_Lot, No new orders/pickups  happen at Redmart.
