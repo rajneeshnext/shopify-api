@@ -4,7 +4,7 @@ No APP, using offcial API's
 
 # Get RedMart inventory and update Shopify inventory accordingly.
 
-# Logic between remart and shopify 
+# Logic between redmart and shopify 
 
 - Assume shopify is 7, redmart Lot is {10, 7, 3} :  10 (total number at redmart) = 7 (available for sale)+3 (schedule for pickup)
 Redmart Pre_Lot = {10, 7, 3}
