@@ -2,6 +2,14 @@ About
 Integrating Shopify Order API with WooCommerce, allowing seamless synchronization of products, inventory, and orders between the two platforms.
 No APP, using offcial API's
 
+Please Watch video for demo of this integration
+
+https://www.youtube.com/watch?v=ExvuTmnUqPw
+
+Please contact us here
+
+https://www.boldertechnologies.net/cneq
+
 # Get RedMart inventory and update Shopify inventory accordingly.
 
 # Logic between redmart and shopify 
